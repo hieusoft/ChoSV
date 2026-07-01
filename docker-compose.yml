@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  # ============================================
+  # PostgreSQL - Database cho từng microservice
+  # ============================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: hieusoft_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hieusoft
+      POSTGRES_PASSWORD: hieusoft123
+      POSTGRES_DB: auth_db
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hieusoft -d auth_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - hieusoft_network
+
+  # ============================================
+  # Redis - Cache & Pub/Sub cho chat realtime
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    container_name: hieusoft_redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - hieusoft_network
+
+  # ============================================
+  # RabbitMQ - Message Queue / Event Bus
+  # ============================================
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: hieusoft_rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: hieusoft
+      RABBITMQ_DEFAULT_PASS: hieusoft123
+      RABBITMQ_DEFAULT_VHOST: /
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - hieusoft_network
+
+volumes:
+  postgres_data:
+    name: hieusoft_postgres_data
+  redis_data:
+    name: hieusoft_redis_data
+  rabbitmq_data:
+    name: hieusoft_rabbitmq_data
+
+networks:
+  hieusoft_network:
+    name: hieusoft_network
+    driver: bridge

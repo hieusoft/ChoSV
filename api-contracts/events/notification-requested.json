@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "NotificationRequested",
+  "type": "object",
+  "properties": {
+    "event": { "const": "NotificationRequested" },
+    "user_id": { "type": "string", "format": "uuid" },
+    "type": { "type": "string" },
+    "title": { "type": "string" },
+    "body": { "type": "string" },
+    "data": { "type": "object" },
+    "send_push": { "type": "boolean", "default": true },
+    "timestamp": { "type": "string", "format": "date-time" }
+  },
+  "required": ["event", "user_id", "type", "title", "body"]
+}

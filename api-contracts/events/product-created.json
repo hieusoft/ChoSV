@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ProductCreated",
+  "type": "object",
+  "properties": {
+    "event": { "const": "ProductCreated" },
+    "product_id": { "type": "string", "format": "uuid" },
+    "seller_id": { "type": "string", "format": "uuid" },
+    "title": { "type": "string" },
+    "category_id": { "type": "string", "format": "uuid" },
+    "price": { "type": "number" },
+    "status": { "type": "string" },
+    "timestamp": { "type": "string", "format": "date-time" }
+  },
+  "required": ["event", "product_id", "seller_id", "timestamp"]
+}

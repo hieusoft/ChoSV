@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ProductModerated",
+  "type": "object",
+  "properties": {
+    "event": { "const": "ProductModerated" },
+    "product_id": { "type": "string", "format": "uuid" },
+    "action": { "enum": ["allow", "warn", "review", "hide", "block"] },
+    "risk_score": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "risk_level": { "enum": ["low", "medium", "high", "critical"] },
+    "signals": { "type": "array", "items": { "type": "string" } },
+    "timestamp": { "type": "string", "format": "date-time" }
+  },
+  "required": ["event", "product_id", "action", "risk_score"]
+}

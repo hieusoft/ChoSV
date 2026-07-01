@@ -1,0 +1,126 @@
+# ============================================
+# docker-compose.services.yml
+# Dev mode: chạy tất cả backend services
+# Infrastructure (PG, Redis, RabbitMQ) chạy riêng từ docker-compose.yml
+# ============================================
+
+services:
+  # ==========================================
+  # API Gateway (Go)
+  # ==========================================
+  gateway:
+    build: ./gateway
+    container_name: hieusoft_gateway
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      GATEWAY_PORT: 8080
+      JWT_SECRET: ${JWT_SECRET}
+      AUTH_SERVICE_URL: http://auth-service:3001
+      USER_SERVICE_URL: http://user-service:3002
+      PRODUCT_SERVICE_URL: http://product-service:3003
+      SEARCH_SERVICE_URL: http://search-service:3004
+      CHAT_SERVICE_URL: http://chat-service:3005
+      NOTIFICATION_SERVICE_URL: http://notification-service:3006
+      AI_SERVICE_URL: http://ai-service:3007
+      MODERATION_SERVICE_URL: http://moderation-service:3008
+      ADMIN_SERVICE_URL: http://admin-service:3009
+    depends_on:
+      - auth-service
+    networks:
+      - hieusoft_network
+
+  # ==========================================
+  # Auth Service (Go) ← SERVICE MẪU
+  # ==========================================
+  auth-service:
+    build: ./services/auth
+    container_name: hieusoft_auth
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      AUTH_PORT: 3001
+      AUTH_DATABASE_URL: postgresql://hieusoft:hieusoft123@postgres:5432/auth_db?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_EXPIRY: ${JWT_ACCESS_EXPIRY:-15m}
+      JWT_REFRESH_EXPIRY: ${JWT_REFRESH_EXPIRY:-168h}
+      RABBITMQ_URL: amqp://hieusoft:hieusoft123@rabbitmq:5672/
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - hieusoft_network
+
+  # ==========================================
+  # User Service (Node.js/Express TS) — TODO
+  # ==========================================
+  # user-service:
+  #   build: ./services/user
+  #   container_name: hieusoft_user
+  #   restart: unless-stopped
+  #   ports: ["3002:3002"]
+  #   environment:
+  #     USER_PORT: 3002
+  #     USER_DATABASE_URL: postgresql://hieusoft:hieusoft123@postgres:5432/user_db?sslmode=disable
+  #     RABBITMQ_URL: amqp://hieusoft:hieusoft123@rabbitmq:5672/
+  #   depends_on: [postgres, rabbitmq]
+  #   networks: [hieusoft_network]
+
+  # ==========================================
+  # Product Service (Node.js/Express TS) — TODO
+  # ==========================================
+  # product-service:
+  #   build: ./services/product
+  #   container_name: hieusoft_product
+  #   restart: unless-stopped
+  #   ports: ["3003:3003"]
+  #   environment:
+  #     PRODUCT_PORT: 3003
+  #     PRODUCT_DATABASE_URL: postgresql://hieusoft:hieusoft123@postgres:5432/product_db?sslmode=disable
+  #     R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID}
+  #     R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY}
+  #     R2_BUCKET_NAME: ${R2_BUCKET_NAME}
+  #     R2_ENDPOINT: ${R2_ENDPOINT}
+  #     R2_PUBLIC_URL: ${R2_PUBLIC_URL}
+  #     AI_SERVICE_URL: http://ai-service:3007
+  #     RABBITMQ_URL: amqp://hieusoft:hieusoft123@rabbitmq:5672/
+  #   depends_on: [postgres, rabbitmq]
+  #   networks: [hieusoft_network]
+
+  # ==========================================
+  # Search Service (Node.js/Express TS) — TODO
+  # ==========================================
+  # search-service: ...
+
+  # ==========================================
+  # Chat Service (Go) — TODO
+  # ==========================================
+  # chat-service: ...
+
+  # ==========================================
+  # Notification Service (Node.js/Express TS) — TODO
+  # ==========================================
+  # notification-service: ...
+
+  # ==========================================
+  # AI Service (Python FastAPI) — TODO
+  # ==========================================
+  # ai-service: ...
+
+  # ==========================================
+  # Moderation Service (Python FastAPI) — TODO
+  # ==========================================
+  # moderation-service: ...
+
+  # ==========================================
+  # Admin Service (Node.js/Express TS) — TODO
+  # ==========================================
+  # admin-service: ...
+
+networks:
+  hieusoft_network:
+    external: true

@@ -1,0 +1,34 @@
+# Environment
+.env
+
+# Docker
+docker-compose.override.yml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dependencies
+node_modules/
+vendor/
+
+# Build
+dist/
+build/
+*.exe
+*.dll
+
+# Logs
+*.log
+logs/
+
+# Uploads / temp
+uploads/
+tmp/
+temp/

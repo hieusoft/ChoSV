@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MessageSent",
+  "type": "object",
+  "properties": {
+    "event": { "const": "MessageSent" },
+    "message_id": { "type": "string", "format": "uuid" },
+    "conversation_id": { "type": "string", "format": "uuid" },
+    "sender_id": { "type": "string", "format": "uuid" },
+    "receiver_id": { "type": "string", "format": "uuid" },
+    "content": { "type": "string" },
+    "message_type": { "enum": ["text", "image", "system"] },
+    "product_id": { "type": "string", "format": "uuid" },
+    "timestamp": { "type": "string", "format": "date-time" }
+  },
+  "required": ["event", "message_id", "conversation_id", "sender_id", "receiver_id", "timestamp"]
+}
