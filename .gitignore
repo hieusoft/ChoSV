@@ -1,6 +1,10 @@
 # Environment
 .env
 
+# Firebase secrets
+config/fcm-service-account.json
+config/*-service-account.json
+
 # Docker
 docker-compose.override.yml
 

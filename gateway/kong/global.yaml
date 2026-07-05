@@ -1,0 +1,25 @@
+_format_version: "3.0"
+
+# Plugin áp cho MỌI request đi qua gateway.
+# Thêm middleware toàn cục ở đây (logging, ip-restriction, ...).
+plugins:
+  - name: cors
+    config:
+      origins:
+        - "*"
+      methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+      headers:
+        - Authorization
+        - Content-Type
+        - Origin
+      max_age: 86400
+  - name: rate-limiting
+    config:
+      minute: 600
+      policy: local

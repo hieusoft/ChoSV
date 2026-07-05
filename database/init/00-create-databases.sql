@@ -9,3 +9,4 @@ CREATE DATABASE chat_db OWNER hieusoft;
 CREATE DATABASE notification_db OWNER hieusoft;
 CREATE DATABASE moderation_db OWNER hieusoft;
 CREATE DATABASE ai_db OWNER hieusoft;
+CREATE DATABASE upload_db OWNER hieusoft;

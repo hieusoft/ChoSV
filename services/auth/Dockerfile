@@ -1,12 +1,16 @@
-FROM golang:1.22-alpine AS builder
+FROM node:20-alpine AS builder
 WORKDIR /app
-COPY go.mod go.sum ./
-RUN go mod download
-COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o /auth-service .
+COPY package.json package-lock.json* ./
+RUN npm install
+COPY tsconfig.json ./
+COPY src ./src
+RUN npm run build
 
-FROM alpine:3.20
-RUN apk --no-cache add ca-certificates
-COPY --from=builder /auth-service /auth-service
+FROM node:20-alpine
+WORKDIR /app
+ENV NODE_ENV=production
+COPY package.json package-lock.json* ./
+RUN npm install --omit=dev
+COPY --from=builder /app/dist ./dist
 EXPOSE 3001
-CMD ["/auth-service"]
+CMD ["node", "dist/main.js"]

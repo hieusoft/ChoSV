@@ -55,10 +55,13 @@ CREATE INDEX idx_products_status_created_at ON products(status, created_at DESC)
 CREATE INDEX idx_products_search ON products
     USING GIN (to_tsvector('simple', coalesce(title, '') || ' ' || coalesce(description, '')));
 
--- Ảnh sản phẩm trên Cloudflare R2
+-- Ảnh sản phẩm trên Cloudflare R2.
+-- upload_id → upload_db.upload_files.id (dùng cho lifecycle save/unsave, không FK chéo DB).
+-- object_key / image_url copy sẵn từ upload-service để render KHÔNG cần gọi upload-service.
 CREATE TABLE product_images (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    upload_id UUID,
     object_key TEXT NOT NULL,
     image_url TEXT NOT NULL,
     width INTEGER,
@@ -70,6 +73,7 @@ CREATE TABLE product_images (
 );
 CREATE INDEX idx_product_images_product_id ON product_images(product_id);
 CREATE INDEX idx_product_images_sort_order ON product_images(product_id, sort_order);
+CREATE INDEX idx_product_images_upload_id ON product_images(upload_id);
 
 -- user_id → auth_db.users.id, product_id → products (local FK)
 CREATE TABLE favorites (
@@ -82,20 +86,6 @@ CREATE TABLE favorites (
 CREATE INDEX idx_favorites_user_id ON favorites(user_id);
 CREATE INDEX idx_favorites_product_id ON favorites(product_id);
 
--- owner_id → auth_db.users.id
-CREATE TABLE upload_files (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    owner_id UUID,
-    object_key TEXT NOT NULL UNIQUE,
-    public_url TEXT NOT NULL,
-    file_name VARCHAR(255),
-    content_type VARCHAR(100),
-    file_size INTEGER,
-    purpose VARCHAR(50) NOT NULL,
-    status VARCHAR(30) NOT NULL DEFAULT 'uploaded',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-CREATE INDEX idx_upload_files_owner_id ON upload_files(owner_id);
-CREATE INDEX idx_upload_files_object_key ON upload_files(object_key);
-CREATE INDEX idx_upload_files_purpose ON upload_files(purpose);
-CREATE INDEX idx_upload_files_status ON upload_files(status);
+-- NOTE: bảng upload_files ĐÃ CHUYỂN sang upload-service (upload_db).
+-- Upload là microservice riêng sở hữu metadata file. product_images.upload_id
+-- tham chiếu tới upload_db.upload_files.id (không FK chéo DB).

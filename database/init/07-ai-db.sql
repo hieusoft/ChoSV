@@ -28,12 +28,16 @@ CREATE INDEX idx_ai_logs_task_type ON ai_logs(task_type);
 CREATE INDEX idx_ai_logs_status ON ai_logs(status);
 CREATE INDEX idx_ai_logs_created_at ON ai_logs(created_at DESC);
 
+-- Prompt kiểm duyệt do admin quản lý (versioned). Mỗi lần đổi = version mới.
+-- Chỉ 1 version is_active mỗi task_type; đổi/rollback bằng cách activate version khác.
+-- created_by = admin nào đổi (→ auth_db.users.id, không FK chéo DB).
 CREATE TABLE ai_prompts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) NOT NULL,
     version INTEGER NOT NULL DEFAULT 1,
     task_type VARCHAR(50) NOT NULL,
     prompt_template TEXT NOT NULL,
+    created_by UUID,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -41,6 +45,7 @@ CREATE TABLE ai_prompts (
 );
 CREATE INDEX idx_ai_prompts_task_type ON ai_prompts(task_type);
 CREATE INDEX idx_ai_prompts_is_active ON ai_prompts(is_active);
+CREATE INDEX idx_ai_prompts_active_task ON ai_prompts(task_type, is_active);
 
 CREATE TABLE ai_usage (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

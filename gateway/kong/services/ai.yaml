@@ -1,0 +1,56 @@
+_format_version: "3.0"
+
+# AI service — CHỈ expose endpoint quản lý prompt cho admin.
+# /api/ai/analyze KHÔNG khai báo route ở đây -> không tới được từ ngoài;
+# moderation-service gọi thẳng ai-service:3007 trong docker network.
+services:
+  - name: ai-service
+    url: http://ai-service:3007
+    routes:
+      # Quản lý prompt kiểm duyệt (list / tạo version / activate) — chỉ admin.
+      # Path /api/ai/prompts KHÔNG khớp /api/ai/analyze.
+      - name: ai-prompts-admin
+        strip_path: false
+        paths:
+          - /api/ai/prompts
+        plugins:
+          - name: jwt
+            config:
+              claims_to_verify:
+                - exp
+          - name: post-function
+            config:
+              access:
+                - |
+                  local auth = kong.request.get_header("Authorization")
+                  if auth then
+                    local token = string.match(auth, "Bearer%s+(.+)")
+                    if token then
+                      local parts = {}
+                      for p in string.gmatch(token, "[^%.]+") do
+                        parts[#parts + 1] = p
+                      end
+                      if #parts >= 2 then
+                        local b64 = string.gsub(parts[2], "-", "+")
+                        b64 = string.gsub(b64, "_", "/")
+                        local rem = #b64 % 4
+                        if rem > 0 then
+                          b64 = b64 .. string.rep("=", 4 - rem)
+                        end
+                        local decoded = ngx.decode_base64(b64)
+                        if decoded then
+                          local ok, claims = pcall(function()
+                            return require("cjson").decode(decoded)
+                          end)
+                          if ok and claims then
+                            if claims.sub then
+                              kong.service.request.set_header("X-User-Id", claims.sub)
+                            end
+                            if claims.role then
+                              kong.service.request.set_header("X-User-Role", claims.role)
+                            end
+                          end
+                        end
+                      end
+                    end
+                  end
