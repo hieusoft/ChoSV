@@ -1,0 +1,128 @@
+_format_version: "3.0"
+
+# Product service — mỗi service 1 file.
+# Cùng prefix /api/products có cả public (GET) lẫn protected (POST/PATCH/DELETE).
+# Tách theo METHOD: mọi GET là public; mọi mutation cần JWT.
+services:
+  - name: product-service
+    url: http://product-service:3003
+    routes:
+      # ---- PUBLIC: xem sản phẩm (GET /api/products, /api/products/{id}) ----
+      - name: product-public
+        strip_path: false
+        paths:
+          - /api/products
+        methods:
+          - GET
+          - OPTIONS
+
+      # ---- PUBLIC: danh mục ----
+      - name: category-public
+        strip_path: false
+        paths:
+          - /api/categories
+        methods:
+          - GET
+          - OPTIONS
+
+      # ---- PROTECTED: tạo/sửa/xóa/mark-sold/favorite (cùng prefix, method mutation) ----
+      - name: product-protected
+        strip_path: false
+        paths:
+          - /api/products
+        methods:
+          - POST
+          - PATCH
+          - PUT
+          - DELETE
+        plugins:
+          - name: jwt
+            config:
+              claims_to_verify:
+                - exp
+          - name: post-function
+            config:
+              access:
+                - |
+                  local auth = kong.request.get_header("Authorization")
+                  if auth then
+                    local token = string.match(auth, "Bearer%s+(.+)")
+                    if token then
+                      local parts = {}
+                      for p in string.gmatch(token, "[^%.]+") do
+                        parts[#parts + 1] = p
+                      end
+                      if #parts >= 2 then
+                        local b64 = string.gsub(parts[2], "-", "+")
+                        b64 = string.gsub(b64, "_", "/")
+                        local rem = #b64 % 4
+                        if rem > 0 then
+                          b64 = b64 .. string.rep("=", 4 - rem)
+                        end
+                        local decoded = ngx.decode_base64(b64)
+                        if decoded then
+                          local ok, claims = pcall(function()
+                            return require("cjson").decode(decoded)
+                          end)
+                          if ok and claims then
+                            if claims.sub then
+                              kong.service.request.set_header("X-User-Id", claims.sub)
+                            end
+                            if claims.role then
+                              kong.service.request.set_header("X-User-Role", claims.role)
+                            end
+                          end
+                        end
+                      end
+                    end
+                  end
+
+      # ---- PROTECTED: danh sách yêu thích của tôi (GET /api/me/favorites) ----
+      - name: me-protected
+        strip_path: false
+        paths:
+          - /api/me
+        methods:
+          - GET
+          - OPTIONS
+        plugins:
+          - name: jwt
+            config:
+              claims_to_verify:
+                - exp
+          - name: post-function
+            config:
+              access:
+                - |
+                  local auth = kong.request.get_header("Authorization")
+                  if auth then
+                    local token = string.match(auth, "Bearer%s+(.+)")
+                    if token then
+                      local parts = {}
+                      for p in string.gmatch(token, "[^%.]+") do
+                        parts[#parts + 1] = p
+                      end
+                      if #parts >= 2 then
+                        local b64 = string.gsub(parts[2], "-", "+")
+                        b64 = string.gsub(b64, "_", "/")
+                        local rem = #b64 % 4
+                        if rem > 0 then
+                          b64 = b64 .. string.rep("=", 4 - rem)
+                        end
+                        local decoded = ngx.decode_base64(b64)
+                        if decoded then
+                          local ok, claims = pcall(function()
+                            return require("cjson").decode(decoded)
+                          end)
+                          if ok and claims then
+                            if claims.sub then
+                              kong.service.request.set_header("X-User-Id", claims.sub)
+                            end
+                            if claims.role then
+                              kong.service.request.set_header("X-User-Role", claims.role)
+                            end
+                          end
+                        end
+                      end
+                    end
+                  end

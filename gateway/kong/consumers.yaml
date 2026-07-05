@@ -1,0 +1,11 @@
+_format_version: "3.0"
+
+# JWT credentials. `key` phải khớp claim `iss` trong token.
+# secret là placeholder __JWT_SECRET__ — được entrypoint của Kong thay bằng
+# env JWT_SECRET lúc container khởi động. KHÔNG hardcode secret thật vào đây.
+consumers:
+  - username: auth-service-consumer
+    jwt_secrets:
+      - key: auth-service
+        algorithm: HS256
+        secret: "__JWT_SECRET__"

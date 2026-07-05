@@ -1,0 +1,362 @@
+_format_version: "3.0"
+consumers:
+- jwt_secrets:
+  - algorithm: HS256
+    key: auth-service
+    secret: __JWT_SECRET__
+  username: auth-service-consumer
+plugins:
+- config:
+    headers:
+    - Authorization
+    - Content-Type
+    - Origin
+    max_age: 86400
+    methods:
+    - GET
+    - POST
+    - PUT
+    - PATCH
+    - DELETE
+    - OPTIONS
+    origins:
+    - '*'
+  name: cors
+- config:
+    minute: 600
+    policy: local
+  name: rate-limiting
+services:
+- name: ai-service
+  routes:
+  - name: ai-prompts-admin
+    paths:
+    - /api/ai/prompts
+    plugins:
+    - config:
+        claims_to_verify:
+        - exp
+      name: jwt
+    - config:
+        access:
+        - |
+          local auth = kong.request.get_header("Authorization")
+          if auth then
+            local token = string.match(auth, "Bearer%s+(.+)")
+            if token then
+              local parts = {}
+              for p in string.gmatch(token, "[^%.]+") do
+                parts[#parts + 1] = p
+              end
+              if #parts >= 2 then
+                local b64 = string.gsub(parts[2], "-", "+")
+                b64 = string.gsub(b64, "_", "/")
+                local rem = #b64 % 4
+                if rem > 0 then
+                  b64 = b64 .. string.rep("=", 4 - rem)
+                end
+                local decoded = ngx.decode_base64(b64)
+                if decoded then
+                  local ok, claims = pcall(function()
+                    return require("cjson").decode(decoded)
+                  end)
+                  if ok and claims then
+                    if claims.sub then
+                      kong.service.request.set_header("X-User-Id", claims.sub)
+                    end
+                    if claims.role then
+                      kong.service.request.set_header("X-User-Role", claims.role)
+                    end
+                  end
+                end
+              end
+            end
+          end
+      name: post-function
+    strip_path: false
+  url: http://ai-service:3007
+- name: auth-service
+  routes:
+  - methods:
+    - POST
+    - OPTIONS
+    name: auth-public
+    paths:
+    - /api/auth/register
+    - /api/auth/login
+    - /api/auth/refresh-token
+    - /api/auth/verify-email
+    - /api/auth/resend-verification
+    - /api/auth/forgot-password
+    - /api/auth/reset-password
+    - /api/auth/2fa/verify
+    strip_path: false
+  - name: auth-protected
+    paths:
+    - /api/auth/me
+    - /api/auth/logout
+    - /api/auth/change-password
+    - /api/auth/2fa/setup
+    - /api/auth/2fa/enable
+    - /api/auth/2fa/disable
+    plugins:
+    - config:
+        claims_to_verify:
+        - exp
+      name: jwt
+    - config:
+        access:
+        - |
+          local auth = kong.request.get_header("Authorization")
+          if auth then
+            local token = string.match(auth, "Bearer%s+(.+)")
+            if token then
+              local parts = {}
+              for p in string.gmatch(token, "[^%.]+") do
+                parts[#parts + 1] = p
+              end
+              if #parts >= 2 then
+                local b64 = string.gsub(parts[2], "-", "+")
+                b64 = string.gsub(b64, "_", "/")
+                local rem = #b64 % 4
+                if rem > 0 then
+                  b64 = b64 .. string.rep("=", 4 - rem)
+                end
+                local decoded = ngx.decode_base64(b64)
+                if decoded then
+                  local ok, claims = pcall(function()
+                    return require("cjson").decode(decoded)
+                  end)
+                  if ok and claims then
+                    if claims.sub then
+                      kong.service.request.set_header("X-User-Id", claims.sub)
+                    end
+                    if claims.role then
+                      kong.service.request.set_header("X-User-Role", claims.role)
+                    end
+                  end
+                end
+              end
+            end
+          end
+      name: post-function
+    strip_path: false
+  url: http://auth-service:3001
+- name: product-service
+  routes:
+  - methods:
+    - GET
+    - OPTIONS
+    name: product-public
+    paths:
+    - /api/products
+    strip_path: false
+  - methods:
+    - GET
+    - OPTIONS
+    name: category-public
+    paths:
+    - /api/categories
+    strip_path: false
+  - methods:
+    - POST
+    - PATCH
+    - PUT
+    - DELETE
+    name: product-protected
+    paths:
+    - /api/products
+    plugins:
+    - config:
+        claims_to_verify:
+        - exp
+      name: jwt
+    - config:
+        access:
+        - |
+          local auth = kong.request.get_header("Authorization")
+          if auth then
+            local token = string.match(auth, "Bearer%s+(.+)")
+            if token then
+              local parts = {}
+              for p in string.gmatch(token, "[^%.]+") do
+                parts[#parts + 1] = p
+              end
+              if #parts >= 2 then
+                local b64 = string.gsub(parts[2], "-", "+")
+                b64 = string.gsub(b64, "_", "/")
+                local rem = #b64 % 4
+                if rem > 0 then
+                  b64 = b64 .. string.rep("=", 4 - rem)
+                end
+                local decoded = ngx.decode_base64(b64)
+                if decoded then
+                  local ok, claims = pcall(function()
+                    return require("cjson").decode(decoded)
+                  end)
+                  if ok and claims then
+                    if claims.sub then
+                      kong.service.request.set_header("X-User-Id", claims.sub)
+                    end
+                    if claims.role then
+                      kong.service.request.set_header("X-User-Role", claims.role)
+                    end
+                  end
+                end
+              end
+            end
+          end
+      name: post-function
+    strip_path: false
+  - methods:
+    - GET
+    - OPTIONS
+    name: me-protected
+    paths:
+    - /api/me
+    plugins:
+    - config:
+        claims_to_verify:
+        - exp
+      name: jwt
+    - config:
+        access:
+        - |
+          local auth = kong.request.get_header("Authorization")
+          if auth then
+            local token = string.match(auth, "Bearer%s+(.+)")
+            if token then
+              local parts = {}
+              for p in string.gmatch(token, "[^%.]+") do
+                parts[#parts + 1] = p
+              end
+              if #parts >= 2 then
+                local b64 = string.gsub(parts[2], "-", "+")
+                b64 = string.gsub(b64, "_", "/")
+                local rem = #b64 % 4
+                if rem > 0 then
+                  b64 = b64 .. string.rep("=", 4 - rem)
+                end
+                local decoded = ngx.decode_base64(b64)
+                if decoded then
+                  local ok, claims = pcall(function()
+                    return require("cjson").decode(decoded)
+                  end)
+                  if ok and claims then
+                    if claims.sub then
+                      kong.service.request.set_header("X-User-Id", claims.sub)
+                    end
+                    if claims.role then
+                      kong.service.request.set_header("X-User-Role", claims.role)
+                    end
+                  end
+                end
+              end
+            end
+          end
+      name: post-function
+    strip_path: false
+  url: http://product-service:3003
+- name: upload-service
+  routes:
+  - name: upload-protected
+    paths:
+    - /api/uploads
+    plugins:
+    - config:
+        claims_to_verify:
+        - exp
+      name: jwt
+    - config:
+        access:
+        - |
+          local auth = kong.request.get_header("Authorization")
+          if auth then
+            local token = string.match(auth, "Bearer%s+(.+)")
+            if token then
+              local parts = {}
+              for p in string.gmatch(token, "[^%.]+") do
+                parts[#parts + 1] = p
+              end
+              if #parts >= 2 then
+                local b64 = string.gsub(parts[2], "-", "+")
+                b64 = string.gsub(b64, "_", "/")
+                local rem = #b64 % 4
+                if rem > 0 then
+                  b64 = b64 .. string.rep("=", 4 - rem)
+                end
+                local decoded = ngx.decode_base64(b64)
+                if decoded then
+                  local ok, claims = pcall(function()
+                    return require("cjson").decode(decoded)
+                  end)
+                  if ok and claims then
+                    if claims.sub then
+                      kong.service.request.set_header("X-User-Id", claims.sub)
+                    end
+                    if claims.role then
+                      kong.service.request.set_header("X-User-Role", claims.role)
+                    end
+                  end
+                end
+              end
+            end
+          end
+      name: post-function
+    strip_path: false
+  url: http://upload-service:3010
+- name: user-service
+  routes:
+  - name: user-protected
+    paths:
+    - /api/users/me
+    plugins:
+    - config:
+        claims_to_verify:
+        - exp
+      name: jwt
+    - config:
+        access:
+        - |
+          local auth = kong.request.get_header("Authorization")
+          if auth then
+            local token = string.match(auth, "Bearer%s+(.+)")
+            if token then
+              local parts = {}
+              for p in string.gmatch(token, "[^%.]+") do
+                parts[#parts + 1] = p
+              end
+              if #parts >= 2 then
+                local b64 = string.gsub(parts[2], "-", "+")
+                b64 = string.gsub(b64, "_", "/")
+                local rem = #b64 % 4
+                if rem > 0 then
+                  b64 = b64 .. string.rep("=", 4 - rem)
+                end
+                local decoded = ngx.decode_base64(b64)
+                if decoded then
+                  local ok, claims = pcall(function()
+                    return require("cjson").decode(decoded)
+                  end)
+                  if ok and claims then
+                    if claims.sub then
+                      kong.service.request.set_header("X-User-Id", claims.sub)
+                    end
+                    if claims.role then
+                      kong.service.request.set_header("X-User-Role", claims.role)
+                    end
+                  end
+                end
+              end
+            end
+          end
+      name: post-function
+    strip_path: false
+  - methods:
+    - GET
+    - OPTIONS
+    name: user-public
+    paths:
+    - ~/api/users/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+    strip_path: false
+  url: http://user-service:3002
